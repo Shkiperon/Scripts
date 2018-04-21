@@ -1,0 +1,37 @@
+#Autoupdating of gateway IP for some route
+# Install base variables
+:local defRouteDist Distance_of_your_default_route
+:local defRouteSub 0.0.0.0/0
+:local extRouteDist Distance_of_route_that_will_be_updated
+:local extRouteSub IPv4Subnet
+:local currIP
+:local routeIP
+
+# Get IP addresses of gateways in routes
+:do {
+        :set currIP [/ip route get [/ip route find dst-address=$defRouteSub distance=$defRouteDist] gateway]
+#       :put $currIP
+        :set routeIP [/ip route get [/ip route find dst-address=$extRouteSub distance=$extRouteDist] gateway]
+#       :put $routeIP
+} on-error={
+        :set currIP 0
+        :set routeIP 1
+}
+
+# Check IP address & change route gateway if needed
+:do {
+        :if ($currIP != $routeIP) do={
+                :if ($currIP != 0 && $routeIP != 1) do={
+                        :put "IP-addresses of gateways in the routes does NOT match - starting update..."
+                        /ip route set [/ip route find dst-address=$extRouteSub distance=$extRouteDist] gateway=$currIP
+                        :put "The route gateway has been successfully updated!"
+                } else={
+                        :put "Couldn't find IP-address(es) needed for script work. Stop esecution."
+                }
+        } else={
+                :put "IP-addresses of gateways in the routes is match! Nothing to do."
+        }
+} on-error={
+        :put "Some routes was changed/removed while execution of the script, or maybe aliens has arrived on your Routerboard. Be careful out there :)"
+}
+
